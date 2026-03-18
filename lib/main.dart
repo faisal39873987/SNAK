@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'screens/game_screen.dart';
+import 'services/ad_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize ads
+  await AdService().init();
+  
   runApp(const SnakeApp());
 }
 

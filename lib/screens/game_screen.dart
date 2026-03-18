@@ -4,6 +4,7 @@ import '../game/snake_game.dart';
 import '../widgets/game_board.dart';
 import '../services/game_audio.dart';
 import '../services/coin_service.dart';
+import '../services/ad_service.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -17,8 +18,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _showStartScreen = true;
   final GameAudio _audio = GameAudio();
   final CoinService _coinService = CoinService();
+  final AdService _adService = AdService();
   int _earnedCoins = 0;
   bool _canContinue = true; // Allow only one continue per game
+  bool _isAdLoading = false;
   
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
@@ -60,6 +63,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         HapticFeedback.heavyImpact();
         _shakeController.forward(from: 0);
         _endGameSession();
+        _showInterstitialIfNeeded();
         break;
       case 'shield_break':
         HapticFeedback.mediumImpact();
@@ -70,6 +74,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Future<void> _endGameSession() async {
     _earnedCoins = await _coinService.endSession(_game.score);
     if (mounted) setState(() {});
+  }
+
+  Future<void> _showInterstitialIfNeeded() async {
+    await _adService.onGameOver();
   }
 
   void _handleStateChange(GameState state) {
@@ -655,36 +663,118 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ),
               const SizedBox(height: 16),
             ],
+            // Watch Ad to Revive (if can continue but doesn't have coins)
+            if (_canContinue) ...[
+              GestureDetector(
+                onTap: _isAdLoading ? null : _handleWatchAdToRevive,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: _adService.isRewardedAdReady && !_isAdLoading
+                        ? const LinearGradient(
+                            colors: [Color(0xFF9C27B0), Color(0xFF673AB7)],
+                          )
+                        : null,
+                    color: !_adService.isRewardedAdReady || _isAdLoading
+                        ? const Color(0xFF333333)
+                        : null,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: _adService.isRewardedAdReady && !_isAdLoading
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF9C27B0).withValues(alpha: 0.4),
+                              blurRadius: 15,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isAdLoading)
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      else
+                        const Icon(Icons.movie, color: Colors.white, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        _isAdLoading ? 'LOADING...' : 'WATCH AD TO REVIVE',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: _adService.isRewardedAdReady ? Colors.white : Colors.white54,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             // Watch Ad button
             GestureDetector(
-              onTap: _handleWatchAd,
+              onTap: _isAdLoading ? null : _handleWatchAd,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1a1a2e),
+                  color: _adService.isRewardedAdReady && !_isAdLoading
+                      ? const Color(0xFF1a1a2e)
+                      : const Color(0xFF333333),
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: const Color(0xFF00d9ff)),
+                  border: Border.all(
+                    color: _adService.isRewardedAdReady && !_isAdLoading
+                        ? const Color(0xFF00d9ff)
+                        : const Color(0xFF555555),
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.play_circle_fill, color: Color(0xFF00d9ff), size: 20),
+                    if (_isAdLoading)
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF00d9ff),
+                        ),
+                      )
+                    else
+                      Icon(
+                        Icons.play_circle_fill,
+                        color: _adService.isRewardedAdReady
+                            ? const Color(0xFF00d9ff)
+                            : const Color(0xFF555555),
+                        size: 20,
+                      ),
                     const SizedBox(width: 8),
-                    const Text(
-                      'WATCH AD',
+                    Text(
+                      _isAdLoading ? 'LOADING...' : 'WATCH AD',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF00d9ff),
+                        color: _adService.isRewardedAdReady && !_isAdLoading
+                            ? const Color(0xFF00d9ff)
+                            : const Color(0xFF555555),
                         letterSpacing: 2,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '+${CoinService.adReward} 🪙',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFFFD700),
+                        color: _adService.isRewardedAdReady && !_isAdLoading
+                            ? const Color(0xFFFFD700)
+                            : const Color(0xFF555555),
                       ),
                     ),
                   ],
@@ -773,37 +863,91 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _handleWatchAd() async {
+    if (_isAdLoading) return;
+    
     HapticFeedback.selectionClick();
-    // Simulate ad watching with a loading indicator
+    
+    // Check if ad is ready
+    if (!_adService.isRewardedAdReady) {
+      _showAdNotReadyDialog();
+      return;
+    }
+    
+    setState(() => _isAdLoading = true);
+
+    final rewarded = await _adService.showRewardedAd(
+      onRewarded: (amount) async {
+        // Use coin service reward amount instead of ad reward
+        await _coinService.watchAd();
+      },
+      onAdNotReady: () {
+        _showAdNotReadyDialog();
+      },
+    );
+
+    if (mounted) {
+      setState(() => _isAdLoading = false);
+      if (rewarded) {
+        _showRewardDialog();
+      }
+    }
+  }
+
+  Future<void> _handleWatchAdToRevive() async {
+    if (_isAdLoading || !_canContinue) return;
+    
+    HapticFeedback.selectionClick();
+    
+    if (!_adService.isRewardedAdReady) {
+      _showAdNotReadyDialog();
+      return;
+    }
+    
+    setState(() => _isAdLoading = true);
+
+    final rewarded = await _adService.showRewardedAd(
+      onRewarded: (amount) {
+        // Revive the player
+      },
+      onAdNotReady: () {
+        _showAdNotReadyDialog();
+      },
+    );
+
+    if (mounted) {
+      setState(() => _isAdLoading = false);
+      if (rewarded) {
+        _canContinue = false;
+        _game.continueGame();
+        setState(() {});
+      }
+    }
+  }
+
+  void _showAdNotReadyDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1a1a2e),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: Color(0xFF00d9ff)),
-            SizedBox(height: 16),
-            Text(
-              'Watching Ad...',
-              style: TextStyle(color: Colors.white70),
-            ),
-          ],
+        title: const Text(
+          'Ad Not Ready',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Color(0xFFe94560)),
         ),
+        content: const Text(
+          'Please wait a moment and try again.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: Color(0xFF00d9ff))),
+          ),
+        ],
       ),
     );
-    
-    // Simulate ad duration
-    await Future.delayed(const Duration(seconds: 2));
-    await _coinService.watchAd();
-    
-    if (mounted) {
-      Navigator.pop(context);
-      setState(() {});
-      _showRewardDialog();
-    }
   }
 
   void _showRewardDialog() {
