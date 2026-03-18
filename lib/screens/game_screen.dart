@@ -143,66 +143,71 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildStartScreen() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            'SNAKE',
-            style: TextStyle(
-              fontSize: 64,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF00d9ff),
-              letterSpacing: 8,
-              shadows: [Shadow(color: Color(0xFF00d9ff), blurRadius: 20)],
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'SNAKE',
+              style: TextStyle(
+                fontSize: 64,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF00d9ff),
+                letterSpacing: 8,
+                shadows: [Shadow(color: Color(0xFF00d9ff), blurRadius: 20)],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'GAME',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w300,
-              color: Color(0xFF666666),
-              letterSpacing: 12,
+            const SizedBox(height: 8),
+            const Text(
+              'GAME',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w300,
+                color: Color(0xFF666666),
+                letterSpacing: 12,
+              ),
             ),
-          ),
-          const SizedBox(height: 40),
-          _buildPowerUpLegend(),
-          const SizedBox(height: 40),
-          GestureDetector(
-            onTap: _startGame,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF00d9ff), Color(0xFF0077b6)],
+            const SizedBox(height: 40),
+            _buildPowerUpLegend(),
+            const SizedBox(height: 40),
+            GestureDetector(
+              onTap: _startGame,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 48,
+                  vertical: 16,
                 ),
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF00d9ff).withValues(alpha: 0.4),
-                    blurRadius: 20,
-                    spreadRadius: 2,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF00d9ff), Color(0xFF0077b6)],
                   ),
-                ],
-              ),
-              child: const Text(
-                'PLAY',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 4,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00d9ff).withValues(alpha: 0.4),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Text(
+                  'PLAY',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 4,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 40),
-          const Text(
-            'Swipe or tap to control',
-            style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
-          ),
-        ],
+            const SizedBox(height: 40),
+            const Text(
+              'Swipe or tap to control',
+              style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -445,95 +450,107 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildGameOverScreen() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            'GAME OVER',
-            style: TextStyle(
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFe94560),
-              letterSpacing: 4,
-              shadows: [Shadow(color: Color(0xFFe94560), blurRadius: 20)],
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'GAME OVER',
+              style: TextStyle(
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFe94560),
+                letterSpacing: 4,
+                shadows: [Shadow(color: Color(0xFFe94560), blurRadius: 20)],
+              ),
             ),
-          ),
-          const SizedBox(height: 32),
-          const Text(
-            'SCORE',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w300,
-              color: Color(0xFF666666),
-              letterSpacing: 4,
+            const SizedBox(height: 32),
+            const Text(
+              'SCORE',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w300,
+                color: Color(0xFF666666),
+                letterSpacing: 4,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${_game.score}',
-            style: const TextStyle(
-              fontSize: 72,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF00d9ff),
+            const SizedBox(height: 8),
+            Text(
+              '${_game.score}',
+              style: const TextStyle(
+                fontSize: 72,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF00d9ff),
+              ),
             ),
-          ),
-          const SizedBox(height: 60),
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              _game.restart();
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF00d9ff), Color(0xFF0077b6)],
+            const SizedBox(height: 60),
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                _game.restart();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 48,
+                  vertical: 16,
                 ),
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF00d9ff).withValues(alpha: 0.4),
-                    blurRadius: 20,
-                    spreadRadius: 2,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF00d9ff), Color(0xFF0077b6)],
                   ),
-                ],
-              ),
-              child: const Text(
-                'RESTART',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 4,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00d9ff).withValues(alpha: 0.4),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Text(
+                  'RESTART',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 4,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 24),
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              setState(() => _showStartScreen = true);
-              _game.dispose();
-              _game = SnakeGame(
-                onStateChanged: _handleStateChange,
-                onUpdate: _handleUpdate,
-                onEvent: _handleGameEvent,
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF666666)),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: const Text(
-                'HOME',
-                style: TextStyle(fontSize: 16, color: Color(0xFF666666), letterSpacing: 2),
+            const SizedBox(height: 24),
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _showStartScreen = true);
+                _game.dispose();
+                _game = SnakeGame(
+                  onStateChanged: _handleStateChange,
+                  onUpdate: _handleUpdate,
+                  onEvent: _handleGameEvent,
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF666666)),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: const Text(
+                  'HOME',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF666666),
+                    letterSpacing: 2,
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
