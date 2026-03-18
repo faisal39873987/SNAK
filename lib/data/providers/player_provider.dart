@@ -70,16 +70,13 @@ class PlayerProvider extends ChangeNotifier {
     storage.gamesPlayed = storage.gamesPlayed + 1;
     storage.totalScore = storage.totalScore + score;
 
-    bool newHighScore = false;
     if (gameMode == 'survival') {
       if (score > storage.highScoreSurvival) {
         storage.highScoreSurvival = score;
-        newHighScore = true;
       }
     } else {
       if (score > storage.highScore) {
         storage.highScore = score;
-        newHighScore = true;
       }
     }
 
@@ -90,7 +87,7 @@ class PlayerProvider extends ChangeNotifier {
       totalScore: storage.totalScore,
     );
     notifyListeners();
-    if (newHighScore) _syncRemote();
+    _syncRemote();
   }
 
   void addCoins(int amount) {

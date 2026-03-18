@@ -99,12 +99,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _ActionTile(
                 title: 'Privacy Policy',
                 icon: Icons.privacy_tip_outlined,
-                onTap: () {},
+                // TODO: Replace with url_launcher to open actual policy URL
+                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Coming soon')),
+                ),
               ),
               _ActionTile(
                 title: 'Terms of Service',
                 icon: Icons.article_outlined,
-                onTap: () {},
+                // TODO: Replace with url_launcher to open actual ToS URL
+                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Coming soon')),
+                ),
               ),
             ],
           ),

@@ -25,17 +25,19 @@ Future<void> main() async {
   // Initialize local storage
   await LocalStorageService.instance.init();
 
-  // Initialize Supabase (replace with your project credentials)
-  await SupabaseService.instance.init(
-    url: const String.fromEnvironment(
-      'SUPABASE_URL',
-      defaultValue: 'https://your-project.supabase.co',
-    ),
-    anonKey: const String.fromEnvironment(
-      'SUPABASE_ANON_KEY',
-      defaultValue: 'your-anon-key',
-    ),
-  );
+  // Initialize Supabase.
+  // For local development, pass credentials via --dart-define:
+  //   flutter run --dart-define=SUPABASE_URL=https://... --dart-define=SUPABASE_ANON_KEY=...
+  // The app works offline when credentials are not configured.
+  const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+    await SupabaseService.instance.init(
+      url: supabaseUrl,
+      anonKey: supabaseAnonKey,
+    );
+  }
+  // If credentials are missing, the app continues in fully offline mode.
 
   runApp(
     MultiProvider(

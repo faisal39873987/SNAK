@@ -93,4 +93,11 @@ class LocalStorageService {
 
   bool get isVip => _prefs.getBool(_keyIsVip) ?? false;
   set isVip(bool v) => _prefs.setBool(_keyIsVip, v);
+
+  // ── Generic helpers ────────────────────────────────────────────────────────
+
+  List<String>? getStringList(String key) => _prefs.getStringList(key);
+
+  Future<bool> setStringList(String key, List<String> value) =>
+      _prefs.setStringList(key, value);
 }

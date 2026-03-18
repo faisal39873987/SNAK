@@ -3,9 +3,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/services/local_storage_service.dart';
+import '../../core/services/supabase_service.dart';
 import '../../data/models/challenge_model.dart';
 import '../../data/providers/player_provider.dart';
-import '../../core/services/supabase_service.dart';
 
 class ChallengesScreen extends StatefulWidget {
   static const routeName = '/challenges';
@@ -19,10 +20,27 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
   List<ChallengeModel> _challenges = [];
   bool _loading = true;
 
+  /// Key for persisting claimed challenge IDs in local storage
+  static const String _claimedKey = 'claimed_challenges';
+
+  Set<String> _claimedIds = {};
+
   @override
   void initState() {
     super.initState();
+    _loadClaimedIds();
     _loadChallenges();
+  }
+
+  void _loadClaimedIds() {
+    final prefs = LocalStorageService.instance;
+    final raw = prefs.getStringList(_claimedKey);
+    _claimedIds = raw?.toSet() ?? {};
+  }
+
+  Future<void> _persistClaimed() async {
+    await LocalStorageService.instance
+        .setStringList(_claimedKey, _claimedIds.toList());
   }
 
   Future<void> _loadChallenges() async {
@@ -31,6 +49,7 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
       if (remote.isNotEmpty) {
         setState(() {
           _challenges = remote.map(ChallengeModel.fromJson).toList();
+          _applyClaimedState();
           _loading = false;
         });
         return;
@@ -40,8 +59,18 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
     // Fallback to local default challenges
     setState(() {
       _challenges = ChallengeModel.defaultChallenges;
+      _applyClaimedState();
       _loading = false;
     });
+  }
+
+  void _applyClaimedState() {
+    _challenges = _challenges.map((c) {
+      if (_claimedIds.contains(c.id)) {
+        return c.copyWith(isCompleted: true);
+      }
+      return c;
+    }).toList();
   }
 
   @override
@@ -72,14 +101,17 @@ class _ChallengesScreenState extends State<ChallengesScreen> {
   }
 
   void _claimReward(BuildContext context, ChallengeModel challenge) {
-    if (!challenge.isCompleted) return;
+    if (challenge.isCompleted) return; // already claimed
+    if (challenge.progress < 1.0) return; // not yet complete
     context.read<PlayerProvider>().addCoins(challenge.rewardCoins);
     setState(() {
       final index = _challenges.indexWhere((c) => c.id == challenge.id);
       if (index != -1) {
         _challenges[index] = challenge.copyWith(isCompleted: true);
+        _claimedIds.add(challenge.id);
       }
     });
+    _persistClaimed();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(

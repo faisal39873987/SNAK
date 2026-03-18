@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../core/constants/app_sizes.dart';
 import '../../core/services/ad_service.dart';
 import '../../core/services/local_storage_service.dart';
 import '../../core/services/supabase_service.dart';
@@ -71,7 +72,8 @@ class GameProvider extends ChangeNotifier {
     }
 
     // Coins reward
-    final coinsEarned = (engine.score ~/ 10).clamp(1, 500);
+    final coinsEarned = (engine.score ~/ AppSizes.coinsPerScoreUnit)
+        .clamp(AppSizes.coinsMinPerGame, AppSizes.coinsMaxPerGame);
     storage.addCoins(coinsEarned);
 
     notifyListeners();

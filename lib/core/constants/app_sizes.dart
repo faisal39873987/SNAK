@@ -65,8 +65,8 @@ class AppSizes {
   static const int foodScoreNormal = 10;
   static const int foodScoreSpecial = 50;
 
-  // Coins
-  static const int coinsPerNormalFood = 1;
-  static const int coinsPerSpecialFood = 5;
-  static const int coinsPerGameComplete = 20;
+  // Coins reward per game (coins = score / coinsPerScoreUnit, clamped)
+  static const int coinsPerScoreUnit = 10;
+  static const int coinsMinPerGame = 1;
+  static const int coinsMaxPerGame = 500;
 }
