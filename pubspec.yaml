@@ -1,0 +1,57 @@
+name: snak
+description: SNAK - A modern addictive snake game with battle modes, power-ups, skins, and global leaderboards.
+version: 1.0.0+1
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  provider: ^6.1.1
+
+  # Backend
+  supabase_flutter: ^2.3.4
+
+  # Local storage
+  shared_preferences: ^2.2.2
+
+  # Ads
+  google_mobile_ads: ^4.0.0
+
+  # Animations
+  flutter_animate: ^4.5.0
+
+  # Audio
+  audioplayers: ^6.0.0
+
+  # Utils
+  uuid: ^4.3.3
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/sounds/
+
+  fonts:
+    - family: Orbitron
+      fonts:
+        - asset: assets/fonts/Orbitron-Regular.ttf
+        - asset: assets/fonts/Orbitron-Bold.ttf
+          weight: 700
+    - family: Rajdhani
+      fonts:
+        - asset: assets/fonts/Rajdhani-Regular.ttf
+        - asset: assets/fonts/Rajdhani-Bold.ttf
+          weight: 700
