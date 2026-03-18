@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../game/snake_game.dart';
 import '../widgets/game_board.dart';
 import '../services/game_audio.dart';
+import '../services/coin_service.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -15,6 +16,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late SnakeGame _game;
   bool _showStartScreen = true;
   final GameAudio _audio = GameAudio();
+  final CoinService _coinService = CoinService();
+  int _earnedCoins = 0;
+  bool _canContinue = true; // Allow only one continue per game
   
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
@@ -23,6 +27,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _audio.init();
+    _coinService.init();
     
     _shakeController = AnimationController(
       duration: const Duration(milliseconds: 500),
@@ -44,6 +49,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       case 'eat':
         _audio.playEat();
         HapticFeedback.lightImpact();
+        _coinService.onFoodEaten();
         break;
       case 'powerup':
         _audio.playPowerUp();
@@ -53,11 +59,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         _audio.playGameOver();
         HapticFeedback.heavyImpact();
         _shakeController.forward(from: 0);
+        _endGameSession();
         break;
       case 'shield_break':
         HapticFeedback.mediumImpact();
         break;
     }
+  }
+
+  Future<void> _endGameSession() async {
+    _earnedCoins = await _coinService.endSession(_game.score);
+    if (mounted) setState(() {});
   }
 
   void _handleStateChange(GameState state) {
@@ -78,6 +90,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _startGame() {
     HapticFeedback.selectionClick();
     setState(() => _showStartScreen = false);
+    _coinService.startSession();
+    _canContinue = true;
+    _earnedCoins = 0;
     _game.startGame();
   }
 
@@ -169,7 +184,41 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 40),
             _buildPowerUpLegend(),
-            const SizedBox(height: 40),
+            const SizedBox(height: 24),
+            // Coins display on start screen
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1a1a2e),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🪙', style: TextStyle(fontSize: 20)),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${_coinService.coins}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFFFD700),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'COINS',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF666666),
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
             GestureDetector(
               onTap: _startGame,
               child: Container(
@@ -300,7 +349,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       ),
                     ],
                   ),
-                  const SizedBox(width: 48),
+                  _buildCoinsDisplay(),
                 ],
               ),
             ),
@@ -399,6 +448,32 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildCoinsDisplay() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1a1a2e),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('🪙', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: 6),
+          Text(
+            '${_coinService.coins}',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFFFD700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showPauseDialog() {
     showDialog(
       context: context,
@@ -449,6 +524,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildGameOverScreen() {
+    final bonusCoins = _coinService.calculateBonusCoins(_game.score);
+    final canAffordContinue = _coinService.canContinue() && _canContinue;
+    
     return Center(
       child: SingleChildScrollView(
         child: Column(
@@ -464,7 +542,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 shadows: [Shadow(color: Color(0xFFe94560), blurRadius: 20)],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
+            // Score display
             const Text(
               'SCORE',
               style: TextStyle(
@@ -483,17 +562,147 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 color: Color(0xFF00d9ff),
               ),
             ),
-            const SizedBox(height: 60),
+            const SizedBox(height: 16),
+            // Coins earned
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              margin: const EdgeInsets.symmetric(horizontal: 32),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1a1a2e),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('🪙', style: TextStyle(fontSize: 24)),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '+$_earnedCoins',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFFFD700),
+                        ),
+                      ),
+                      if (bonusCoins > 0)
+                        Text(
+                          'Includes +$bonusCoins bonus!',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: const Color(0xFFFFD700).withValues(alpha: 0.7),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Total: ${_coinService.coins} coins',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF666666)),
+            ),
+            const SizedBox(height: 32),
+            // Continue button (if can afford)
+            if (canAffordContinue) ...[
+              GestureDetector(
+                onTap: _handleContinue,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
+                    ),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFD700).withValues(alpha: 0.4),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('❤️', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'CONTINUE',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '(${CoinService.continuePrice} 🪙)',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            // Watch Ad button
+            GestureDetector(
+              onTap: _handleWatchAd,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1a1a2e),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: const Color(0xFF00d9ff)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.play_circle_fill, color: Color(0xFF00d9ff), size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'WATCH AD',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF00d9ff),
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '+${CoinService.adReward} 🪙',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFFFD700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            // Restart button
             GestureDetector(
               onTap: () {
                 HapticFeedback.selectionClick();
+                _coinService.startSession();
+                _canContinue = true;
+                _earnedCoins = 0;
                 _game.restart();
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 48,
-                  vertical: 16,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF00d9ff), Color(0xFF0077b6)],
@@ -518,7 +727,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+            // Home button
             GestureDetector(
               onTap: () {
                 HapticFeedback.selectionClick();
@@ -531,10 +741,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 );
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 decoration: BoxDecoration(
                   border: Border.all(color: const Color(0xFF666666)),
                   borderRadius: BorderRadius.circular(30),
@@ -551,6 +758,86 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _handleContinue() async {
+    HapticFeedback.mediumImpact();
+    final success = await _coinService.spendToContinue();
+    if (success) {
+      _canContinue = false;
+      _game.continueGame();
+      setState(() {});
+    }
+  }
+
+  Future<void> _handleWatchAd() async {
+    HapticFeedback.selectionClick();
+    // Simulate ad watching with a loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1a1a2e),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: Color(0xFF00d9ff)),
+            SizedBox(height: 16),
+            Text(
+              'Watching Ad...',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+      ),
+    );
+    
+    // Simulate ad duration
+    await Future.delayed(const Duration(seconds: 2));
+    await _coinService.watchAd();
+    
+    if (mounted) {
+      Navigator.pop(context);
+      setState(() {});
+      _showRewardDialog();
+    }
+  }
+
+  void _showRewardDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1a1a2e),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🎉', style: TextStyle(fontSize: 48)),
+            const SizedBox(height: 16),
+            Text(
+              '+${CoinService.adReward} Coins!',
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFFFD700),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Total: ${_coinService.coins}',
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(color: Color(0xFF00d9ff))),
+          ),
+        ],
       ),
     );
   }

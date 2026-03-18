@@ -337,6 +337,34 @@ class SnakeGame {
     startGame();
   }
 
+  /// Continue game after death (used with coins)
+  void continueGame() {
+    if (state != GameState.gameOver) return;
+    
+    // Respawn snake at center, keep score
+    final startPos = (gridSize * (gridSize ~/ 2)) + (gridSize ~/ 2);
+    snake = [startPos, startPos - 1, startPos - 2];
+    direction = Direction.right;
+    _pendingDirection = null;
+    currentPowerUp = null;
+    activePowerUps.clear();
+    hasShield = false;
+    foodEatenEffect = false;
+    powerUpCollectedEffect = false;
+    _spawnFood();
+    
+    state = GameState.playing;
+    onStateChanged(state);
+    _startGameLoop();
+    _startPowerUpSpawner();
+  }
+  
+  /// Activate a purchased power-up
+  void activatePurchasedPowerUp(PowerUpType type) {
+    _activatePowerUp(type);
+    onUpdate();
+  }
+
   void pause() {
     if (state == GameState.playing) {
       state = GameState.paused;
